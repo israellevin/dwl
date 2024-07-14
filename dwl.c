@@ -2184,8 +2184,8 @@ resize(Client *c, struct wlr_box geo, int interact)
 	wlr_scene_node_set_position(&c->border[1]->node, 0, c->geom.height - c->bw);
 	wlr_scene_node_set_position(&c->border[2]->node, 0, c->bw);
 	wlr_scene_node_set_position(&c->border[3]->node, c->geom.width - c->bw, c->bw);
-	wlr_scene_rect_set_size(c->dimmer, c->geom.width, c-> geom.height);
-	wlr_scene_node_set_position(&c->dimmer->node, 0, 0);
+	wlr_scene_rect_set_size(c->dimmer, c->geom.width - 2*c->bw, c-> geom.height - 2*c->bw);
+	wlr_scene_node_set_position(&c->dimmer->node, c->bw, c->bw);
 
 	/* this is a no-op if size hasn't changed */
 	c->resize = client_set_size(c, c->geom.width - 2 * c->bw,
