@@ -341,6 +341,7 @@ static void tag(const Arg *arg);
 static void tagmon(const Arg *arg);
 static void tile(Monitor *m);
 static void toggledimming(const Arg *arg);
+static void toggledimmingclient(const Arg *arg);
 static void togglefloating(const Arg *arg);
 static void togglefullscreen(const Arg *arg);
 static void toggletag(const Arg *arg);
@@ -2708,6 +2709,14 @@ void toggledimming(const Arg *arg)
    c = focustop(selmon);
    if (c)
 	client_set_dimmer_state(c, 0);
+}
+
+void
+toggledimmingclient(const Arg *arg)
+{
+	Client *sel = focustop(selmon);
+	if (sel)
+        sel -> neverdim ^= 1;
 }
 
 void
