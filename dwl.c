@@ -108,6 +108,7 @@ typedef struct {
 	Monitor *mon;
 	struct wlr_scene_tree *scene;
 	struct wlr_scene_rect *border[4]; /* top, bottom, left, right */
+	struct wlr_scene_rect *dimmer;
 	struct wlr_scene_tree *scene_surface;
 	struct wl_list link;
 	struct wl_list flink;
@@ -137,7 +138,7 @@ typedef struct {
 #endif
 	unsigned int bw;
 	uint32_t tags;
-	int isfloating, isurgent, isfullscreen;
+	int isfloating, isurgent, isfullscreen, neverdim;
 	uint32_t resize; /* configure serial of a pending resize */
 } Client;
 
@@ -227,6 +228,7 @@ typedef struct {
 	const char *title;
 	uint32_t tags;
 	int isfloating;
+	int neverdim;
 	int monitor;
 } Rule;
 
@@ -334,6 +336,8 @@ static void startdrag(struct wl_listener *listener, void *data);
 static void tag(const Arg *arg);
 static void tagmon(const Arg *arg);
 static void tile(Monitor *m);
+static void toggledimming(const Arg *arg);
+static void toggledimmingclient(const Arg *arg);
 static void togglefloating(const Arg *arg);
 static void togglefullscreen(const Arg *arg);
 static void toggletag(const Arg *arg);
@@ -405,6 +409,7 @@ static struct wlr_output_layout *output_layout;
 static struct wlr_box sgeom;
 static struct wl_list mons;
 static Monitor *selmon;
+static int DIMOPT = 1;
 
 /* global event handlers */
 static struct wl_listener cursor_axis = {.notify = axisnotify};
@@ -490,6 +495,7 @@ applyrules(Client *c)
 		if ((!r->title || strstr(title, r->title))
 				&& (!r->id || strstr(appid, r->id))) {
 			c->isfloating = r->isfloating;
+			c->neverdim = r-> neverdim;
 			newtags |= r->tags;
 			i = 0;
 			wl_list_for_each(m, &mons, link) {
@@ -1432,8 +1438,10 @@ focusclient(Client *c, int lift)
 
 		/* Don't change border color if there is an exclusive focus or we are
 		 * handling a drag operation */
-		if (!exclusive_focus && !seat->drag)
+		if (!exclusive_focus && !seat->drag) {
 			client_set_border_color(c, focuscolor);
+			client_set_dimmer_state(c, 0);
+		}
 	}
 
 	/* Deactivate old client if focus is changing */
@@ -1451,7 +1459,7 @@ focusclient(Client *c, int lift)
 		 * and probably other clients */
 		} else if (old_c && !client_is_unmanaged(old_c) && (!c || !client_wants_focus(c))) {
 			client_set_border_color(old_c, bordercolor);
-
+			client_set_dimmer_state(old_c, 1);
 			client_activate_surface(old, 0);
 		}
 	}
@@ -1737,8 +1745,7 @@ void
 mapnotify(struct wl_listener *listener, void *data)
 {
 	/* Called when the surface is mapped, or ready to display on-screen. */
-	Client *p = NULL;
-	Client *w, *c = wl_container_of(listener, c, map);
+	Client *p, *w, *d, *c = wl_container_of(listener, c, map);
 	Monitor *m;
 	int i;
 
@@ -1772,6 +1779,10 @@ mapnotify(struct wl_listener *listener, void *data)
 		c->border[i]->node.data = c;
 	}
 
+	c->dimmer = wlr_scene_rect_create(c->scene, 0, 0, unfocuseddim);
+	c->dimmer->node.data = c;
+	client_set_dimmer_state(c, 1);
+
 	/* Initialize client geometry with room for border */
 	client_set_tiled(c, WLR_EDGE_TOP | WLR_EDGE_BOTTOM | WLR_EDGE_LEFT | WLR_EDGE_RIGHT);
 	c->geom.width += 2 * c->bw;
@@ -1790,6 +1801,10 @@ mapnotify(struct wl_listener *listener, void *data)
 		setmon(c, p->mon, p->tags);
 	} else {
 		applyrules(c);
+		d = focustop(selmon);
+		if (d) {
+			client_set_dimmer_state(d, 0);
+		}
 	}
 	printstatus();
 
@@ -2216,7 +2231,7 @@ resize(Client *c, struct wlr_box geo, int interact)
 	c->geom = geo;
 	applybounds(c, bbox);
 
-	/* Update scene-graph, including borders */
+	/* Update scene-graph, including borders and dimmer*/
 	wlr_scene_node_set_position(&c->scene->node, c->geom.x, c->geom.y);
 	wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bw);
 	wlr_scene_rect_set_size(c->border[0], c->geom.width, c->bw);
@@ -2226,6 +2241,8 @@ resize(Client *c, struct wlr_box geo, int interact)
 	wlr_scene_node_set_position(&c->border[1]->node, 0, c->geom.height - c->bw);
 	wlr_scene_node_set_position(&c->border[2]->node, 0, c->bw);
 	wlr_scene_node_set_position(&c->border[3]->node, c->geom.width - c->bw, c->bw);
+	wlr_scene_rect_set_size(c->dimmer, c->geom.width - 2*c->bw, c-> geom.height - 2*c->bw);
+	wlr_scene_node_set_position(&c->dimmer->node, c->bw, c->bw);
 
 	/* this is a no-op if size hasn't changed */
 	c->resize = client_set_size(c, c->geom.width - 2 * c->bw,
@@ -2740,6 +2757,27 @@ tile(Monitor *m)
 		}
 		i++;
 	}
+}
+
+void toggledimming(const Arg *arg)
+{
+   Client *c;
+   DIMOPT ^= 1;
+   wl_list_for_each(c, &clients, link)
+   {
+       client_set_dimmer_state(c, 1);
+   }
+   c = focustop(selmon);
+   if (c)
+	client_set_dimmer_state(c, 0);
+}
+
+void
+toggledimmingclient(const Arg *arg)
+{
+	Client *sel = focustop(selmon);
+	if (sel)
+        sel -> neverdim ^= 1;
 }
 
 void
