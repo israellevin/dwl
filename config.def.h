@@ -4,10 +4,10 @@
                         ((hex >> 8) & 0xFF) / 255.0f, \
                         (hex & 0xFF) / 255.0f }
 /* appearance */
-static const int sloppyfocus               = 1;  /* focus follows mouse */
+static const int sloppyfocus               = 0;  /* focus follows mouse */
 static const int bypass_surface_visibility = 0;  /* 1 means idle inhibitors will disable idle tracking even if it's surface isn't visible  */
 static const unsigned int borderpx         = 1;  /* border pixel of windows */
-static const float rootcolor[]             = COLOR(0x222222ff);
+static const float rootcolor[]             = COLOR(0x000000ff);
 static const float bordercolor[]           = COLOR(0x444444ff);
 static const float focuscolor[]            = COLOR(0x005577ff);
 static const float unfocuseddim[]            = COLOR(0x00000088);
@@ -56,7 +56,7 @@ static const MonitorRule monrules[] = {
 	{ "eDP-1",    0.5f,  1,      2,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL,   -1,  -1 },
 	*/
 	/* defaults */
-	{ NULL,       0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL,   -1,  -1 },
+	{ NULL,       0.85f, 1,      1.5,    &layouts[2], WL_OUTPUT_TRANSFORM_NORMAL,   -1,  -1 },
 };
 
 /* keyboard */
@@ -65,7 +65,8 @@ static const struct xkb_rule_names xkb_rules = {
 	/* example:
 	.options = "ctrl:nocaps",
 	*/
-	.options = NULL,
+	.options = "grp:caps_toggle",
+    .layout = "us,il",
 };
 
 static const int repeat_rate = 25;
@@ -117,7 +118,7 @@ static const enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TA
 static const int cursor_timeout = 5;
 
 /* If you want to use the windows key for MODKEY, use WLR_MODIFIER_LOGO */
-#define MODKEY WLR_MODIFIER_ALT
+#define MODKEY WLR_MODIFIER_LOGO
 
 #define TAGKEYS(KEY,SKEY,TAG) \
 	{ MODKEY,                    KEY,            view,            {.ui = 1 << TAG} }, \
