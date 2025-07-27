@@ -444,6 +444,10 @@ static int menu_fd;
 static pid_t menu_pid;
 static struct wl_event_source *menu_source;
 static unsigned int kblayout_idx = -1;
+static const struct xkb_rule_names en_rules = {.layout = "us"};
+static struct xkb_context *en_context;
+static struct xkb_keymap *en_keymap;
+static struct xkb_state *en_state;
 
 #ifdef XWAYLAND
 static void activatex11(struct wl_listener *listener, void *data);
@@ -731,6 +735,9 @@ cleanup(void)
 	wlr_backend_destroy(backend);
 
 	wl_display_destroy(dpy);
+	xkb_state_unref(en_state);
+	xkb_keymap_unref(en_keymap);
+	xkb_context_unref(en_context);
 	/* Destroy after the wayland display (when the monitors are already destroyed)
 	   to avoid destroying them with an invalid scene output. */
 	wlr_scene_node_destroy(&scene->tree.node);
@@ -1886,16 +1893,19 @@ keypress(struct wl_listener *listener, void *data)
 	/* This event is raised when a key is pressed or released. */
 	KeyboardGroup *group = wl_container_of(listener, group, key);
 	struct wlr_keyboard_key_event *event = data;
+	int nsyms, handled;
 
 	/* Translate libinput keycode -> xkbcommon */
 	uint32_t keycode = event->keycode + 8;
 	/* Get a list of keysyms based on the keymap for this keyboard */
 	const xkb_keysym_t *syms;
-	int nsyms = xkb_state_key_get_syms(
-			group->wlr_group->keyboard.xkb_state, keycode, &syms);
-
-	int handled = 0;
 	uint32_t mods = wlr_keyboard_get_modifiers(&group->wlr_group->keyboard);
+	xkb_state_update_key(en_state, keycode,
+			(event->state == WL_KEYBOARD_KEY_STATE_PRESSED)
+			? XKB_KEY_DOWN : XKB_KEY_UP);
+	nsyms = xkb_state_key_get_syms(en_state, keycode, &syms);
+
+	handled = 0;
 
 	wlr_idle_notifier_v1_notify_activity(idle_notifier, seat);
 
@@ -3062,6 +3072,10 @@ setup(void)
 	 * pointer, touch, and drawing tablet device. We also rig up a listener to
 	 * let us know when new input devices are available on the backend.
 	 */
+	en_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+	en_keymap = xkb_keymap_new_from_names(en_context, &en_rules,
+		XKB_KEYMAP_COMPILE_NO_FLAGS);
+	en_state = xkb_state_new(en_keymap);
 	LISTEN_STATIC(&backend->events.new_input, inputdevice);
 	virtual_keyboard_mgr = wlr_virtual_keyboard_manager_v1_create(dpy);
 	LISTEN_STATIC(&virtual_keyboard_mgr->events.new_virtual_keyboard, virtualkeyboard);
