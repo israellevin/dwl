@@ -1677,6 +1677,7 @@ drawuborders(Monitor *m)
 		if (cidx != -1 && c->isurgent)
 			drawclientborders(m->uborders, c, cidx, n, urgentcolor);
 	}
+}
 
 void
 dwl_ipc_manager_bind(struct wl_client *client, void *data, uint32_t version, uint32_t id)

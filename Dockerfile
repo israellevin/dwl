@@ -64,6 +64,16 @@ RUN cp -a --parents \
     /usr/local/share/wayland-sessions/dwl.desktop \
     /artifacts/.
 
+# Build dwlmsg.
+WORKDIR /root
+RUN git clone --depth 1 --branch main https://codeberg.org/notchoc/dwlmsg.git
+WORKDIR /root/dwlmsg
+RUN make install
+
+RUN cp -a --parents \
+    /usr/local/bin/dwlmsg \
+    /artifacts/.
+
 # Serve the artifacts directory all tarred up.
 RUN apt install -y netcat-openbsd
 EXPOSE 8000
