@@ -133,14 +133,16 @@ static const int cursor_timeout = 5;
 static const char *termcmd[] = { "foot", NULL };
 static const char *menucmd[] = { "menu_run", NULL };
 static const char *browsercmd[] = { "brows", NULL };
+static const char *cliphistcmd[] = { "clip", NULL };
 
 static const Key keys[] = {
 	/* Note that Shift changes certain key codes: c -> C, 2 -> at, etc. */
 	/* modifier                  key                 function        argument */
 	{ MODKEY,                    XKB_KEY_p,          spawn,          {.v = menucmd} },
 	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_Return,     spawn,          {.v = termcmd} },
-	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_z,          spawn,          {.v = termcmd} },
+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_Z,          spawn,          {.v = termcmd} },
 	{ MODKEY,                    XKB_KEY_b,          spawn,          {.v = browsercmd} },
+	{ MODKEY,                    XKB_KEY_c,          spawn,          {.v = cliphistcmd} },
 	{ MODKEY,                    XKB_KEY_j,          focusstack,     {.i = +1} },
 	{ MODKEY,                    XKB_KEY_k,          focusstack,     {.i = -1} },
 	{ MODKEY,                    XKB_KEY_i,          incnmaster,     {.i = +1} },
