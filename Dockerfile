@@ -40,6 +40,9 @@ RUN apt-get install -y \
     wayland-protocols \
     xwayland
 
+# Use `docker build --build-arg NEW_WLTOORS=$(date +%s)` to force rebuild from here.
+ARG NEW_ALL=date
+
 # Build wlroots.
 WORKDIR /root
 RUN git clone --depth 1 --branch 0.19.0 https://gitlab.freedesktop.org/wlroots/wlroots.git
@@ -52,6 +55,18 @@ RUN cp -a --parents \
     /usr/local/lib/x86_64-linux-gnu/libwlroots-0.19.so \
     /artifacts/.
 
+# Build dwlmsg.
+WORKDIR /root
+RUN git clone --depth 1 --branch main https://codeberg.org/notchoc/dwlmsg.git
+WORKDIR /root/dwlmsg
+RUN make install
+
+RUN cp -a --parents \
+    /usr/local/bin/dwlmsg \
+    /artifacts/.
+
+# Use `docker build --build-arg NEW_DWL=$(date +%s)` to force rebuild from here.
+ARG NEW_DWL=date
 # Build dwl.
 WORKDIR /root
 RUN git clone --depth 1 --branch master https://github.com/israellevin/dwl.git
@@ -62,16 +77,6 @@ RUN cp -a --parents \
     /usr/local/bin/dwl \
     /usr/local/share/man/man1/dwl.1 \
     /usr/local/share/wayland-sessions/dwl.desktop \
-    /artifacts/.
-
-# Build dwlmsg.
-WORKDIR /root
-RUN git clone --depth 1 --branch main https://codeberg.org/notchoc/dwlmsg.git
-WORKDIR /root/dwlmsg
-RUN make install
-
-RUN cp -a --parents \
-    /usr/local/bin/dwlmsg \
     /artifacts/.
 
 # Serve the artifacts directory all tarred up.
