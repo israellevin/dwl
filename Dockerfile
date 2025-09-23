@@ -40,7 +40,7 @@ RUN apt-get install -y \
     wayland-protocols \
     xwayland
 
-# Use `docker build --build-arg NEW_WLTOORS=$(date +%s)` to force rebuild from here.
+# Use `docker build --build-arg NEW_ALL=$(date +%s)` to force rebuild from here.
 ARG NEW_ALL=date
 
 # Build wlroots.
